@@ -29,8 +29,19 @@ def solve_question():
         # Використовуємо випадковий ключ
         genai.configure(api_key=random.choice(API_KEYS))
         
-        # ВИПРАВЛЕНО: Використовуємо стабільну модель, яка не видає 404
-        model = genai.GenerativeModel('gemini-pro')
+        # 🔥 АВТОПОШУК МОДЕЛІ 🔥
+        # Сервер сам запитає у Google, яка модель зараз доступна
+        valid_model_name = None
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                valid_model_name = m.name
+                break # Беремо першу ж робочу модель
+                
+        if not valid_model_name:
+            return jsonify({"error": "Для твого ключа немає доступних моделей"}), 500
+
+        # Використовуємо ту модель, яку знайшов код
+        model = genai.GenerativeModel(valid_model_name)
 
         prompt = f"""
 Ти — розумний помічник на тесті.
