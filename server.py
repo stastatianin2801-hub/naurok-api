@@ -5,24 +5,17 @@ import random
 import google.generativeai as genai
 
 app = Flask(__name__)
-# Дозволяємо запити з будь-якого джерела
-CORS(app)
 
-# Обробка OPTIONS запитів (для вирішення CORS preflight)
-@app.before_request
-def handle_options():
-    if request.method == 'OPTIONS':
-        return '', 200
+# Правильне налаштування CORS: дозволяємо всі запити на всі маршрути
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Отримання ключів
+# Отримання ключів з налаштувань Render
 api_keys_str = os.environ.get("API_KEYS", "")
 API_KEYS = api_keys_str.split(",") if api_keys_str else []
 
-@app.route('/solve', methods=['POST', 'OPTIONS'])
+@app.route('/solve', methods=['POST'])
 def solve_question():
     data = request.json
-    print(f"DEBUG: Отримано запит! Метод: {request.method}")
-    print(f"DEBUG: Дані: {data}")
     if not data:
         return jsonify({"error": "No data"}), 400
         
@@ -33,7 +26,9 @@ def solve_question():
         return jsonify({"error": "Ключі не налаштовані"}), 500
     
     try:
+        # Беремо випадковий ключ
         genai.configure(api_key=random.choice(API_KEYS))
+        # Використовуємо стабільну модель
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
