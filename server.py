@@ -21,6 +21,8 @@ API_KEYS = api_keys_str.split(",") if api_keys_str else []
 @app.route('/solve', methods=['POST', 'OPTIONS'])
 def solve_question():
     data = request.json
+    print(f"DEBUG: Отримано запит! Метод: {request.method}")
+    print(f"DEBUG: Дані: {data}")
     if not data:
         return jsonify({"error": "No data"}), 400
         
