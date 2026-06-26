@@ -1,12 +1,11 @@
 import os
 import random
+import google.generativeai as genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import google.generativeai as genai
 
 app = Flask(__name__)
-# Дозволяємо запити з будь-яких сайтів
-CORS(app, resources={r"/solve": {"origins": "*"}})
+CORS(app) # Цього зазвичай достатньо, якщо бібліотека стоїть у requirements.txt
 
 # 🔑 ПУЛ КЛЮЧІВ: створи ще 3-4 безкоштовних акаунти Google і впиши ключі сюди
 # Сервер сам прочитає ключі з налаштувань Render, а не з коду
