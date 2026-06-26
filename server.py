@@ -10,7 +10,8 @@ CORS(app)
 
 # 🔑 ПУЛ КЛЮЧІВ: створи ще 3-4 безкоштовних акаунти Google і впиши ключі сюди
 # Сервер сам прочитає ключі з налаштувань Render, а не з коду
-API_KEYS = os.environ.get("API_KEYS").split(",")
+api_keys_str = os.environ.get("API_KEYS", "")
+API_KEYS = api_keys_str.split(",") if api_keys_str else []
 
 
 @app.route('/solve', methods=['POST'])
@@ -20,6 +21,8 @@ def solve_question():
     options = data.get('options')
     
     # 🎲 Магія: при кожному запиті беремо випадковий ключ із пулу
+    if not API_KEYS:
+        return jsonify({"error": "Ключі не налаштовані"}), 500
     current_key = random.choice(API_KEYS)
     genai.configure(api_key=current_key)
     
