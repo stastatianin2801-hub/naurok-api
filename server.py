@@ -29,7 +29,7 @@ def solve_question():
         # Беремо випадковий ключ
         genai.configure(api_key=random.choice(API_KEYS))
         # Використовуємо стабільну модель
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-pro')
         
         prompt = f"""
         Питання: {question}
