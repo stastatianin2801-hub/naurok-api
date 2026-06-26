@@ -28,7 +28,9 @@ def solve_question():
 
         # Використовуємо випадковий ключ
         genai.configure(api_key=random.choice(API_KEYS))
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # ВИПРАВЛЕНО: Використовуємо стабільну модель, яка не видає 404
+        model = genai.GenerativeModel('gemini-pro')
 
         prompt = f"""
 Ти — розумний помічник на тесті.
