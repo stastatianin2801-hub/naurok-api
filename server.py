@@ -6,7 +6,7 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 # Дозволяємо запити з будь-яких сайтів
-CORS(app)
+CORS(app, resources={r"/solve": {"origins": "*"}})
 
 # 🔑 ПУЛ КЛЮЧІВ: створи ще 3-4 безкоштовних акаунти Google і впиши ключі сюди
 # Сервер сам прочитає ключі з налаштувань Render, а не з коду
