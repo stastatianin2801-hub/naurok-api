@@ -28,10 +28,9 @@ def solve_question():
 
         genai.configure(api_key=random.choice(API_KEYS))
         
-        # 🔥 РОЗУМНИЙ ФІЛЬТР МОДЕЛЕЙ 🔥
+        # Збираємо всі доступні моделі
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         
-        # VIP-список стабільних моделей, які мають комп'ютерний зір
         good_models = [
             'models/gemini-1.5-flash-latest',
             'models/gemini-1.5-flash',
@@ -45,18 +44,12 @@ def solve_question():
             if model_name in available_models:
                 valid_model_name = model_name
                 break
-                
-        # Запасний варіант, якщо VIP-список не спрацював (шукаємо 1.5, але без слова robotics)
-        if not valid_model_name:
-            for am in available_models:
-                if '1.5' in am and 'robotics' not in am and 'preview' not in am:
-                    valid_model_name = am
-                    break
 
         if not valid_model_name:
-            return jsonify({"error": "Не знайдено підходящої моделі для картинок"}), 500
+            # 🔥 ОСЬ НАША ПАСТКА: Виводимо всі доступні моделі прямо в текст помилки!
+            models_str = ", ".join(available_models)
+            return jsonify({"error": f"Доступні моделі: {models_str}"}), 500
 
-        print(f"=== Використовуємо модель: {valid_model_name} ===")
         model = genai.GenerativeModel(valid_model_name)
 
         prompt = f"""
