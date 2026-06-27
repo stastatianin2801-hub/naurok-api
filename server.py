@@ -7,7 +7,6 @@ import google.generativeai as genai
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Завантажуємо ключі
 API_KEYS = [k.strip() for k in os.environ.get("API_KEYS", "").split(",") if k.strip()]
 
 @app.route('/solve', methods=['POST'])
@@ -19,28 +18,27 @@ def solve_question():
 
         question = data.get('question', '').strip()
         options = data.get('options', '').strip()
+        images_data = data.get('images', []) # 🔥 Отримуємо картинки від розширення
 
-        if not question or not options:
-            return jsonify({"error": "Question or options missing"}), 400
+        if not options:
+            return jsonify({"error": "Options missing"}), 400
 
         if not API_KEYS:
             return jsonify({"error": "API_KEYS не налаштовані на сервері"}), 500
 
-        # Використовуємо випадковий ключ
         genai.configure(api_key=random.choice(API_KEYS))
         
-        # 🔥 АВТОПОШУК МОДЕЛІ 🔥
-        # Сервер сам запитає у Google, яка модель зараз доступна
+        # Шукаємо модель, яка підтримує зір (серія 1.5)
         valid_model_name = None
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
-                valid_model_name = m.name
-                break # Беремо першу ж робочу модель
+                if '1.5' in m.name: # Моделі 1.5 (flash/pro) чудово бачать картинки
+                    valid_model_name = m.name
+                    break
                 
         if not valid_model_name:
-            return jsonify({"error": "Для твого ключа немає доступних моделей"}), 500
+            valid_model_name = 'gemini-pro' # Запасний варіант, якщо 1.5 недоступна
 
-        # Використовуємо ту модель, яку знайшов код
         model = genai.GenerativeModel(valid_model_name)
 
         prompt = f"""
@@ -48,11 +46,21 @@ def solve_question():
 Питання: {question}
 Варіанти відповідей: {options}
 
+Якщо до питання додано зображення, уважно проаналізуй його, щоб знайти правильну відповідь.
 Вибери **один** правильний варіант. 
 Відповідай **тільки** текстом правильної відповіді, без пояснень, без нумерації.
 """
+        
+        # 🔥 ФОРМУЄМО ПАКЕТ ДАНИХ (ТЕКСТ + КАРТИНКИ) 🔥
+        contents = [prompt]
+        for img in images_data:
+            contents.append({
+                "mime_type": img["mime_type"],
+                "data": img["data"]
+            })
 
-        response = model.generate_content(prompt)
+        # Відправляємо весь пакет у нейромережу
+        response = model.generate_content(contents)
         answer = response.text.strip()
 
         return jsonify({"answer": answer})
