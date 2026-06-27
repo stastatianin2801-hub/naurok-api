@@ -56,21 +56,21 @@ def solve_question():
 
                 model = genai.GenerativeModel(valid_model_name)
 
-                # 🔥 УНІВЕРСАЛЬНИЙ ПРОМПТ ДЛЯ ВСІХ ТИПІВ ТЕСТІВ 🔥
+# 🔥 УНІВЕРСАЛЬНИЙ ПОЛІГЛОТ-ПРОМПТ 🔥
                 prompt = f"""
-Ти — математично точний помічник на тесті.
-Питання: {question}
-Варіанти відповідей: {options}
+You are a highly accurate test assistant. 
+Question: {question}
+Options: {options}
 
-УНІВЕРСАЛЬНІ ПРАВИЛА:
-1. Якщо до питання є картинка (підпис "Зображення до питання:"), уважно проаналізуй її. Вона є ГОЛОВНОЮ підказкою!
-2. Якщо варіанти відповідей — це текст (наприклад "Пролісок", "Крокус"), ти ПОВИНЕН повернути точний текст правильного варіанту.
-3. Якщо варіанти відповідей — це картинки (наприклад "[Картинка]"), ти ПОВИНЕН повернути номери правильних варіантів (наприклад "Варіант 1").
-4. Звертай увагу на однину/множину в питанні. Якщо просять обрати один варіант — повертай суворо один!
+INSTRUCTIONS:
+1. Analyze the question and options carefully. The language of the question doesn't matter, focus on the logic or content.
+2. If there is an image, it is the PRIMARY evidence.
+3. If the question asks to pick one option, return exactly one. If it asks for multiple, return all correct ones.
+4. If options are text, return the exact text. If options are images (labeled "[Картинка]"), return only the "Варіант X" label.
 
-ФОРМАТ ВІДПОВІДІ (ТІЛЬКИ JSON):
-- Для текстових варіантів: ["Пролісок"] або ["Варіант А", "Варіант Б"]
-- Для варіантів-картинок: ["Варіант 1"] або ["Варіант 2", "Варіант 4"]
+STRICT JSON FORMAT:
+Return ONLY a valid JSON array. Example: ["Варіант 1"] or ["Answer text"].
+Do not add any explanations, notes, or extra words.
 """
                 
                 contents = [prompt]
