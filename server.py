@@ -28,15 +28,14 @@ def solve_question():
 
         genai.configure(api_key=random.choice(API_KEYS))
         
-        # Збираємо всі доступні моделі
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         
+        # 🔥 ОНОВЛЕНИЙ СПИСОК НОВІТНІХ МОДЕЛЕЙ З ТВОГО ДОСТУПУ 🔥
         good_models = [
-            'models/gemini-1.5-flash-latest',
-            'models/gemini-1.5-flash',
-            'models/gemini-1.5-pro-latest',
-            'models/gemini-1.5-pro',
-            'models/gemini-pro-vision'
+            'models/gemini-2.5-flash',
+            'models/gemini-2.0-flash',
+            'models/gemini-flash-latest',
+            'models/gemini-2.5-pro'
         ]
         
         valid_model_name = None
@@ -44,12 +43,15 @@ def solve_question():
             if model_name in available_models:
                 valid_model_name = model_name
                 break
+                
+        # Якщо раптом навіть їх немає, беремо просто першу доступну
+        if not valid_model_name and available_models:
+            valid_model_name = available_models[0]
 
         if not valid_model_name:
-            # 🔥 ОСЬ НАША ПАСТКА: Виводимо всі доступні моделі прямо в текст помилки!
-            models_str = ", ".join(available_models)
-            return jsonify({"error": f"Доступні моделі: {models_str}"}), 500
+            return jsonify({"error": "Не знайдено жодної моделі"}), 500
 
+        print(f"=== Використовуємо модель: {valid_model_name} ===")
         model = genai.GenerativeModel(valid_model_name)
 
         prompt = f"""
