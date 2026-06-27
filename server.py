@@ -26,63 +26,84 @@ def solve_question():
         if not API_KEYS:
             return jsonify({"error": "API_KEYS не налаштовані на сервері"}), 500
 
-        genai.configure(api_key=random.choice(API_KEYS))
-        
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        good_models = [
-            'models/gemini-2.5-flash',
-            'models/gemini-2.0-flash',
-            'models/gemini-flash-latest',
-            'models/gemini-2.5-pro'
-        ]
-        
-        valid_model_name = None
-        for model_name in good_models:
-            if model_name in available_models:
-                valid_model_name = model_name
-                break
+        # Перемішуємо список ключів, щоб щоразу починати з випадкового
+        random.shuffle(API_KEYS)
+        last_error = ""
+
+        # 🔥 АВТОМАТИЧНИЙ ПЕРЕБІР КЛЮЧІВ (LOAD BALANCING) 🔥
+        for api_key in API_KEYS:
+            try:
+                print(f"=== Пробуємо ключ: {api_key[:8]}... ===")
+                genai.configure(api_key=api_key)
                 
-        if not valid_model_name and available_models:
-            valid_model_name = available_models[0]
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                
+                good_models = [
+                    'models/gemini-2.5-flash',
+                    'models/gemini-2.0-flash',
+                    'models/gemini-flash-latest',
+                    'models/gemini-2.5-pro'
+                ]
+                
+                valid_model_name = None
+                for model_name in good_models:
+                    if model_name in available_models:
+                        valid_model_name = model_name
+                        break
+                        
+                if not valid_model_name and available_models:
+                    valid_model_name = available_models[0]
 
-        if not valid_model_name:
-            return jsonify({"error": "Не знайдено жодної моделі"}), 500
+                if not valid_model_name:
+                    raise Exception("Не знайдено жодної моделі")
 
-        model = genai.GenerativeModel(valid_model_name)
+                model = genai.GenerativeModel(valid_model_name)
 
-        # 🔥 ОНОВЛЕНИЙ, СУВОРИЙ ПРОМПТ 🔥
-        prompt = f"""
+                prompt = f"""
 Ти — розумний помічник на тесті.
 Питання: {question}
 Варіанти відповідей: {options}
 
 КРИТИЧНІ ПРАВИЛА:
-1. Якщо до питання додано картинку, вона є ГОЛОВНИМ критерієм. Відповідай ТІЛЬКИ те, що зображено на фото, навіть якщо інші текстові варіанти теж є правильними за загальним смислом.
-2. Звертай увагу на число: якщо питання в однині ("Вкажіть назву", "Оберіть") — повертай СУВОРО 1 варіант. Якщо в множині ("Оберіть малюнки") — повертай всі правильні.
+1. Якщо до питання додано картинку, вона є ГОЛОВНИМ критерієм.
+2. Звертай увагу на число: якщо питання в однині — повертай 1 варіант. Якщо в множині — всі правильні.
 
 ФОРМАТ ВІДПОВІДІ (ТІЛЬКИ JSON):
 - Текстові варіанти: ["Точний текст"]
 - Картинки-варіанти: ["Варіант 1", "Варіант 2"]
 """
-        
-        contents = [prompt]
-        for img in images_data:
-            if "label" in img:
-                contents.append(img["label"])
-            contents.append({
-                "mime_type": img["mime_type"],
-                "data": img["data"]
-            })
+                
+                contents = [prompt]
+                for img in images_data:
+                    if "label" in img:
+                        contents.append(img["label"])
+                    contents.append({
+                        "mime_type": img["mime_type"],
+                        "data": img["data"]
+                    })
 
-        response = model.generate_content(contents)
-        
-        answer = response.text.replace('```json', '').replace('```', '').strip()
+                response = model.generate_content(contents)
+                answer = response.text.replace('```json', '').replace('```', '').strip()
 
-        return jsonify({"answer": answer})
+                # Якщо код дійшов сюди — ключ спрацював! Повертаємо відповідь і зупиняємо перебір
+                return jsonify({"answer": answer})
+
+            except Exception as e:
+                error_msg = str(e)
+                print(f"❌ Ключ видав помилку: {error_msg}")
+                # Якщо це помилка ліміту (429), йдемо на наступне коло циклу до іншого ключа
+                if "429" in error_msg or "quota" in error_msg.lower():
+                    last_error = error_msg
+                    continue 
+                else:
+                    # Якщо сервер Google впав або інша серйозна помилка, видаємо одразу
+                    return jsonify({"error": error_msg}), 500
+
+        # Якщо цикл завершився і ЖОДЕН з 5 ключів не спрацював:
+        return jsonify({"error": f"Всі {len(API_KEYS)} ключів вичерпали ліміт! Зачекай хвилину. Деталі: {last_error}"}), 429
 
     except Exception as e:
-        print("=== Gemini Error ===")
+        print("=== Server Error ===")
         print(str(e))
         return jsonify({"error": str(e)}), 500
 
